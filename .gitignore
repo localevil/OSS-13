@@ -216,3 +216,21 @@ ModelManifest.xml
 
 Resources/Icons/Thumbs.db
 imgui.ini
+
+\.idea/
+
+CMakeFiles/
+
+cmake-build-debug/
+
+SharedLibrary/Makefile
+
+Makefile
+
+*.cbp
+
+*.cmake
+
+GasProject Server/GasProject_Server
+
+*.a
