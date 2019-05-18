@@ -8,6 +8,7 @@
 #include "Graphics/Window.hpp"
 #include "Graphics/TileGrid.hpp"
 #include "Graphics/UI/Widget/ContextMenu.hpp"
+#include "Graphics/UI/Widget/Chat.h"
 #include "../UI.hpp"
 #include "Network.hpp"
 
@@ -17,6 +18,8 @@ GameProcessUI::GameProcessUI(UI *ui) : UIModule(ui),
     infoLabel(new InfoLabel(ui->GetFont()))
 { 
 	generateFunctionWindow();
+
+	chat = std::make_unique<Chat>();
 
 	tileGrid = new TileGrid();
 	widgets.push_back(uptr<TileGrid>(tileGrid));
@@ -31,13 +34,13 @@ GameProcessUI::GameProcessUI(UI *ui) : UIModule(ui),
     entry->GetStyle().backgroundColor = sf::Color(31, 31, 31);
     entry->GetStyle().textColor = sf::Color(193, 205, 205);
     entry->GetStyle().fontSize = 18;
-    container->AddItem(entry, sf::Vector2f(0, 0));
+//    container->AddItem(entry, sf::Vector2f(0, 0));
 
     formattedTextField = new FormattedTextField(sf::Vector2f(0, 0));
     formattedTextField->GetStyle().backgroundColor = sf::Color(60, 60, 60);
     formattedTextField->GetStyle().textColor = sf::Color(193, 205, 205);
     formattedTextField->GetStyle().fontSize = 18;
-    container->AddItem(formattedTextField, sf::Vector2f(0, 0));
+//    container->AddItem(formattedTextField, sf::Vector2f(0, 0));
 
 	//contextMenu = new ContextMenu();
 	//contextMenu->AddRow(ContextMenuRow(ContextMenuRow::Type::FUNCTION, L"Test 1"));
@@ -76,9 +79,11 @@ void GameProcessUI::Resize(const int width, const int height) {
     container->SetSize(sf::Vector2f(width - tileGrid->GetTileSize() * float(Global::FOV), height * 0.5f));
     entry->SetSize({ container->GetSize().x, int(container->GetSize().y * 0.1f) });
     formattedTextField->SetSize(uf::vec2i(container->GetSize().x, container->GetSize().y - entry->GetSize().y));
+    chat->SetSize(uf::vec2i(container->GetSize().x, container->GetSize().y));
 
     entry->SetPosition(0, float(formattedTextField->GetSize().y));
     container->SetPosition({ width - container->GetSize().x, height - entry->GetSize().y - formattedTextField->GetSize().y });
+    chat->SetPosition(width - container->GetSize().x, height - entry->GetSize().y - formattedTextField->GetSize().y);
 
     functionWindow->SetPosition(tileGrid->GetTileSize() * float(Global::FOV), 0);
     functionWindow->SetSize({width - functionWindow->GetAbsPosition().x, container->GetPosition().y});
@@ -91,7 +96,7 @@ void GameProcessUI::Draw(sf::RenderWindow *renderWindow) {
 
 void GameProcessUI::Update(sf::Time timeElapsed) {
     UIModule::Update(timeElapsed);
-
+	chat->Update(timeElapsed);
     Object *objectUnderCursor = tileGrid->GetObjectUnderCursor();
     if (!objectUnderCursor) infoLabel->SetText("");
     else infoLabel->SetText(objectUnderCursor->GetName());

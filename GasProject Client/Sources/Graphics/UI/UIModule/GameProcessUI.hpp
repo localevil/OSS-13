@@ -46,6 +46,8 @@ private:
 
     // Event Handlers
     void send();
+
+	uptr<Widget> chat;
 };
 
 class InfoLabel {

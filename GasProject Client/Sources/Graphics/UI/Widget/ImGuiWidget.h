@@ -21,4 +21,7 @@ protected:
 	virtual uf::vec2i GetAbsPosition() const override;
 	virtual uf::vec2i GetSize() const override;
 	virtual bool IsVisible() const override;
+
+	uf::vec2f size;
+	uf::vec2f pos;
 };

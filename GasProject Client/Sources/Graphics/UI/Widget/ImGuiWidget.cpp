@@ -1,5 +1,9 @@
 #include "ImGuiWidget.h"
 
+#include <imgui.h>
+#include <imgui-SFML.h>
+#include <imgui_stdlib.h>
+
 bool ImGuiWidget::HandleEvent(sf::Event event) { return false; }
 void ImGuiWidget::draw() const { }
 
@@ -7,8 +11,12 @@ void ImGuiWidget::Draw(sf::RenderTarget & target) const { }
 void ImGuiWidget::Hide() { }
 void ImGuiWidget::Show() { }
 void ImGuiWidget::SetPosition(const uf::vec2i &) { }
-void ImGuiWidget::SetPosition(const float x, const float y) { }
-void ImGuiWidget::SetSize(const uf::vec2i &) { }
+void ImGuiWidget::SetPosition(const float x, const float y) {
+	pos = {x, y};
+}
+void ImGuiWidget::SetSize(const uf::vec2i &size) {
+	this->size = size;
+}
 uf::vec2i ImGuiWidget::GetPosition() const { return uf::vec2i(); }
 uf::vec2i ImGuiWidget::GetAbsPosition() const { return uf::vec2i(); }
 uf::vec2i ImGuiWidget::GetSize() const { return uf::vec2i(); }
