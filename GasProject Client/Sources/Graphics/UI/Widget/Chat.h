@@ -8,7 +8,10 @@ public:
 
 	virtual void Update(sf::Time timeElapsed) final;
 
+	void Receive(const std::string &message);
 private:
+	void send();
+
 	std::vector<std::string> text;
 	std::string buffer;
 };

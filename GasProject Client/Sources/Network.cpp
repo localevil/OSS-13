@@ -10,6 +10,7 @@
 #include "Graphics/UI/UIModule/AuthUI.hpp"
 #include "Graphics/UI/UIModule/GameListUI.hpp"
 #include "Graphics/UI/UIModule/GameProcessUI.hpp"
+#include "Graphics/UI/Widget/Chat.h"
 
 #include "Client.hpp"
 #include "Graphics/Window.hpp"
@@ -326,7 +327,8 @@ void Connection::parsePacket(Packet &packet) {
             std::string message;
             packet >> message;
 			GameProcessUI *gameProcessUI = dynamic_cast<GameProcessUI *>(CC::Get()->GetWindow()->GetUI()->GetCurrentUIModule());
-			if (gameProcessUI) gameProcessUI->Receive(message);
+			/*if (gameProcessUI) gameProcessUI->Receive(message);*/
+			if (gameProcessUI) gameProcessUI->GetChat()->Receive(message);
             break;
         }
     };

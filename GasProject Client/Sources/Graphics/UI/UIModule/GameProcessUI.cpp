@@ -133,6 +133,7 @@ void GameProcessUI::HandleEvent(sf::Event event) {
 
 InfoLabel *GameProcessUI::GetInfoLabel() const { return infoLabel.get(); }
 TileGrid *GameProcessUI::GetTileGrid() const { return tileGrid; }
+Chat *GameProcessUI::GetChat() const { return static_cast<Chat *>(chat.get()); }
 
 void GameProcessUI::generateFunctionWindow() {
 	functionWindow = new Container();

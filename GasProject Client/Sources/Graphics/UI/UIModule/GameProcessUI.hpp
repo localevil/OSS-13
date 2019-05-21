@@ -13,6 +13,8 @@ class ContextMenu;
 
 class InfoLabel;
 
+class Chat;
+
 class GameProcessUI : public UIModule {
 public:
     explicit GameProcessUI(UI *ui);
@@ -30,6 +32,7 @@ public:
 
     InfoLabel *GetInfoLabel() const;
     TileGrid *GetTileGrid() const;
+	Chat *GetChat() const;
 
 private:
     uptr<InfoLabel> infoLabel;
