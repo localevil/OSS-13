@@ -27,11 +27,13 @@ void Chat::Update(sf::Time timeElapsed) {
 	ImGui::BeginChild("ScrollingRegion", ImVec2(0, -footer_height_to_reserve), false, ImGuiWindowFlags_HorizontalScrollbar); // Leave room for 1 separator + 1 InputText
 
 	for (const auto &message : messages) {
-		ImGui::PushFont(CC::Get()->GetWindow()->GetFont());
-		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
+		ImGui::PushFont(CC::Get()->GetWindow()->GetFont("arial_bold"));
+//		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
 		ImGui::TextWrapped(message.playerName.c_str());
 		ImGui::SameLine(0, 0);
-		ImGui::PopStyleColor();
+//		ImGui::PopStyleColor();
+		ImGui::PopFont();
+		ImGui::PushFont(CC::Get()->GetWindow()->GetFont("Arialuni"));
 		ImGui::TextWrapped(message.text.c_str());
 		ImGui::PopFont();
 	}
@@ -39,12 +41,14 @@ void Chat::Update(sf::Time timeElapsed) {
 	ImGui::EndChild();
 
 	ImGui::PushItemWidth(-1.0f);
+	ImGui::PushFont(CC::Get()->GetWindow()->GetFont("Arialuni"));
 	if (ImGui::InputText("", &buffer, ImGuiInputTextFlags_EnterReturnsTrue)) {
 		send();
 		buffer.clear();
 
 		ImGui::SetKeyboardFocusHere(-1);
 	}
+	ImGui::PopFont();
 	ImGui::PopItemWidth();
 
 	ImGui::End();

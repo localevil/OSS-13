@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+
 #include <imgui.h>
 
 #include <SFML/System.hpp>
@@ -29,7 +31,7 @@ public:
     sf::Vector2i GetPosition() const;
     UI *GetUI() const;
 
-	ImFont *GetFont() const;
+	ImFont *GetFont(const std::string &fontName) const;
 
 private:
     uptr<UI> ui;
@@ -37,7 +39,7 @@ private:
     uptr<sf::RenderWindow> window;
     int width, height;
 
-	uptr<ImFont> font;
+	std::map<std::string, uptr<ImFont>> fonts;
 
     const int req_FPS = 60;
     sf::Clock frame_clock;

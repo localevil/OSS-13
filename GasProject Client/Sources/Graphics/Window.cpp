@@ -30,9 +30,11 @@ void Window::Initialize() {
 
 	ImGuiIO& io = ImGui::GetIO();
 	ImFontConfig config;
-	io.Fonts->AddFontDefault();
-	font = std::make_unique<ImFont>();
-	font.reset(io.Fonts->AddFontFromFileTTF("Arialuni.ttf", 20));
+	uptr<ImFont> font = std::make_unique<ImFont>();
+	font.reset(io.Fonts->AddFontFromFileTTF("Arialuni.ttf", 20, &config, io.Fonts->GetGlyphRangesCyrillic()));
+	fonts.emplace(make_pair("Arialuni", move(font)));
+	font.reset(io.Fonts->AddFontFromFileTTF("arial_bold.ttf", 20, &config, io.Fonts->GetGlyphRangesCyrillic()));
+	fonts.emplace(make_pair("arial_bold", move(font)));
 	ImGui::SFML::UpdateFontTexture();
 }
 
@@ -75,7 +77,7 @@ int Window::GetHeight() const { return height; }
 sf::Vector2i Window::GetPosition() const { return window->getPosition(); }
 UI *Window::GetUI() const { return ui.get(); }
 
-ImFont *Window::GetFont() const { return font.get(); }
+ImFont *Window::GetFont(const std::string &fontName) const { return fonts.at(fontName).get(); }
 
 void Window::fps_sleep() {
     sf::Time timeElapsed = frame_clock.getElapsedTime();
