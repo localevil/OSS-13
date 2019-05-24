@@ -6,6 +6,8 @@
 
 #include <Shared/Network/Protocol/ClientCommand.h>
 
+#include "Graphics/Window.hpp"
+#include "Client.hpp"
 #include "Network.hpp"
 
 using namespace network::protocol;
@@ -24,10 +26,14 @@ void Chat::Update(sf::Time timeElapsed) {
 	const float footer_height_to_reserve = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing(); // 1 separator, 1 input text
 	ImGui::BeginChild("ScrollingRegion", ImVec2(0, -footer_height_to_reserve), false, ImGuiWindowFlags_HorizontalScrollbar); // Leave room for 1 separator + 1 InputText
 
-	for (const auto &row : text) {
+	for (const auto &message : messages) {
+		ImGui::PushFont(CC::Get()->GetWindow()->GetFont());
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
-		ImGui::TextWrapped(row.c_str());
+		ImGui::TextWrapped(message.playerName.c_str());
+		ImGui::SameLine(0, 0);
 		ImGui::PopStyleColor();
+		ImGui::TextWrapped(message.text.c_str());
+		ImGui::PopFont();
 	}
 
 	ImGui::EndChild();
@@ -35,7 +41,7 @@ void Chat::Update(sf::Time timeElapsed) {
 	ImGui::PushItemWidth(-1.0f);
 	if (ImGui::InputText("", &buffer, ImGuiInputTextFlags_EnterReturnsTrue)) {
 		send();
-		text.push_back(std::move(buffer));
+		buffer.clear();
 
 		ImGui::SetKeyboardFocusHere(-1);
 	}
@@ -45,7 +51,18 @@ void Chat::Update(sf::Time timeElapsed) {
 }
 
 void Chat::Receive(const string& message) {
-	text.push_back(message);
+	size_t startPos = 0;
+	string playerName;
+	if (message[0] == '<') {
+		size_t counter = 0;
+		while (message[counter] != '>')
+			counter++;
+		playerName = message.substr(1, counter - 1) + ": ";
+		startPos = counter + 1;
+	}
+	string text = message.substr(startPos);
+
+	messages.emplace_back(Inscription(move(playerName), move(text)));
 }
 
 void Chat::send() {

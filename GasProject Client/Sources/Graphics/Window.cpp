@@ -27,6 +27,13 @@ void Window::Initialize() {
 
 	ImGui::SFML::Init(*window);
 	setImGuiStyle(ImGui::GetStyle());
+
+	ImGuiIO& io = ImGui::GetIO();
+	ImFontConfig config;
+	io.Fonts->AddFontDefault();
+	font = std::make_unique<ImFont>();
+	font.reset(io.Fonts->AddFontFromFileTTF("Arialuni.ttf", 20));
+	ImGui::SFML::UpdateFontTexture();
 }
 
 void Window::Update() {
@@ -67,6 +74,8 @@ int Window::GetWidth() const { return width; }
 int Window::GetHeight() const { return height; }
 sf::Vector2i Window::GetPosition() const { return window->getPosition(); }
 UI *Window::GetUI() const { return ui.get(); }
+
+ImFont *Window::GetFont() const { return font.get(); }
 
 void Window::fps_sleep() {
     sf::Time timeElapsed = frame_clock.getElapsedTime();

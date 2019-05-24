@@ -1,5 +1,7 @@
 #pragma once
 
+#include <imgui.h>
+
 #include <SFML/System.hpp>
 
 #include "Shared/Types.hpp"
@@ -27,11 +29,15 @@ public:
     sf::Vector2i GetPosition() const;
     UI *GetUI() const;
 
+	ImFont *GetFont() const;
+
 private:
     uptr<UI> ui;
 
     uptr<sf::RenderWindow> window;
     int width, height;
+
+	uptr<ImFont> font;
 
     const int req_FPS = 60;
     sf::Clock frame_clock;
