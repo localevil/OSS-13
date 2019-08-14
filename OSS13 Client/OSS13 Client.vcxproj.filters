@@ -93,6 +93,9 @@
     <ClCompile Include="Sources\Graphics\UI\Widget\Widget.cpp">
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\CefExample.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Graphics\TileGrid\ControlUI.cpp">
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>
@@ -188,8 +191,14 @@
     <ClInclude Include="Sources\Graphics\UI\Widget\DynamicWidget.h">
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>
+    <ClInclude Include="Sources\CefExample.h">
+      <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
     <ClInclude Include="Sources\Graphics\TileGrid\ControlUI.h">
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
   </ItemGroup>
 </Project>
