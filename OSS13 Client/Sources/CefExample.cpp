@@ -237,7 +237,7 @@ public:
 		CefRefPtr<CefCommandLine> command_line =
 			CefCommandLine::GetGlobalCommandLine();
 
-		const bool use_views = command_line->HasSwitch("use-views");
+		const bool use_views = true;// command_line->HasSwitch("use-views");
 
 		// SimpleHandler implements browser-level callbacks.
 		CefRefPtr<SimpleHandler> handler(new SimpleHandler(use_views));
@@ -259,7 +259,12 @@ public:
 				handler, url, browser_settings, NULL, NULL, NULL);
 
 			// Create the Window. It will show itself after creation.
-			CefWindow::CreateTopLevelWindow(new SimpleWindowDelegate(browser_view));
+			auto window = CefWindow::CreateTopLevelWindow(new SimpleWindowDelegate(browser_view));
+			CefRefPtr<CefBrowser> browser = browser_view->GetBrowser();
+			//browser->GetMainFrame()->LoadURL("mail.ru");
+			browser->GetMainFrame()->LoadURL("data:text/plain;charset=UTF-8;page=21,my%20SpaceStationMessage:1234,5678");
+
+
 		}
 		else {
 			// Information used when creating the native window.

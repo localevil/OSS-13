@@ -44,6 +44,7 @@ ClientController * const ClientController::Get() { return instance; }
 
 int main() {
 	CefCheck();
+	return 0;
 
     ClientController clientController;
     clientController.Run();
