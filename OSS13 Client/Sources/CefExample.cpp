@@ -1,321 +1,240 @@
 #include "CefExample.h"
 
-#include "include/cef_client.h"
+#include <SFML/Graphics.hpp>
+#include <SFML/OpenGL.hpp>
+
+//#include "include/cef_render_handler.h"
+//#include "include/cef_client.h"
 #include "include/cef_app.h"
-#include "include/wrapper/cef_helpers.h"
-#include "include/cef_base.h"
-#include "include/base/cef_lock.h"
-//#include "include/base/cef_ref_counted.h"
-//#include <include/cef_browser.h>
-#include <include/views/cef_browser_view.h>
-#include <include/base/cef_logging.h>
-#include <include/views/cef_window.h>
-#include "include/base/cef_bind.h"
-#include "include/wrapper/cef_closure_task.h"
-//#include <include/views/cef_window.h>
-//#include <include/internal/cef_types_wrappers.h>
-//#include <include/internal/cef_ptr.h>
-//#include <include/base/cef_scoped_ptr.h>
-//#include <include/internal/cef_win.h>
 
-#include <list>
+#include <fstream>
+#include <cstdio>
 
-namespace {
-
-// When using the Views framework this object provides the delegate
-// implementation for the CefWindow that hosts the Views-based browser.
-class SimpleWindowDelegate : public CefWindowDelegate {
-public:
-	explicit SimpleWindowDelegate(CefRefPtr<CefBrowserView> browser_view)
-		: browser_view_(browser_view) {}
-
-	void OnWindowCreated(CefRefPtr<CefWindow> window) {
-		// Add the browser view and show the window.
-		window->AddChildView(browser_view_);
-		window->Show();
-
-		// Give keyboard focus to the browser view.
-		browser_view_->RequestFocus();
-	}
-
-	void OnWindowDestroyed(CefRefPtr<CefWindow> window) {
-		browser_view_ = NULL;
-	}
-
-	bool CanClose(CefRefPtr<CefWindow> window) {
-		// Allow the window to close if the browser says it's OK.
-		CefRefPtr<CefBrowser> browser = browser_view_->GetBrowser();
-		if (browser)
-			return browser->GetHost()->TryCloseBrowser();
-		return true;
-	}
-
-	CefSize GetPreferredSize(CefRefPtr<CefView> view) {
-		return CefSize(800, 600);
-	}
-
-private:
-	CefRefPtr<CefBrowserView> browser_view_;
-
-	IMPLEMENT_REFCOUNTING(SimpleWindowDelegate);
-	DISALLOW_COPY_AND_ASSIGN(SimpleWindowDelegate);
-};
-
-}  // namespace
-
-class SimpleHandler;
-
-namespace {
-
-	SimpleHandler* g_instance = NULL;
-
-}  // namespace
-
-class SimpleHandler : public CefClient,
-	public CefDisplayHandler,
-	public CefLifeSpanHandler,
-	public CefLoadHandler {
-public:
-	explicit SimpleHandler(bool use_views): use_views_(use_views), is_closing_(false) {
-		DCHECK(!g_instance);
-		g_instance = this;
-	}
-	~SimpleHandler() {
-		g_instance = NULL;
-	}
-
-	// Provide access to the single global instance of this object.
-	static SimpleHandler* GetInstance() {
-		return g_instance;
-	}
-
-	// CefClient methods:
-	virtual CefRefPtr<CefDisplayHandler> GetDisplayHandler() { return this; }
-	virtual CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() { return this; }
-	virtual CefRefPtr<CefLoadHandler> GetLoadHandler() { return this; }
-
-	// CefDisplayHandler methods:
-	void OnTitleChange(CefRefPtr<CefBrowser> browser,
-		const CefString& title) {
-		CEF_REQUIRE_UI_THREAD();
-
-		if (use_views_) {
-			// Set the title of the window using the Views framework.
-			CefRefPtr<CefBrowserView> browser_view =
-				CefBrowserView::GetForBrowser(browser);
-			if (browser_view) {
-				CefRefPtr<CefWindow> window = browser_view->GetWindow();
-				if (window)
-					window->SetTitle(title);
-			}
-		}
-		else {
-			// Set the title of the window using platform APIs.
-			PlatformTitleChange(browser, title);
-		}
-	}
-
-	// CefLifeSpanHandler methods:
-	void OnAfterCreated(CefRefPtr<CefBrowser> browser) {
-		CEF_REQUIRE_UI_THREAD();
-
-		// Add to the list of existing browsers.
-		browser_list_.push_back(browser);
-	}
-
-	CefRefPtr<CefBrowser> GetBrowser() {
-		return browser_list_.back();
-	}
-
-	bool DoClose(CefRefPtr<CefBrowser> browser) {
-		CEF_REQUIRE_UI_THREAD();
-
-		// Closing the main window requires special handling. See the DoClose()
-		// documentation in the CEF header for a detailed destription of this
-		// process.
-		if (browser_list_.size() == 1) {
-			// Set a flag to indicate that the window close should be allowed.
-			is_closing_ = true;
-		}
-
-		// Allow the close. For windowed browsers this will result in the OS close
-		// event being sent.
-		return false;
-	}
-
-	void OnBeforeClose(CefRefPtr<CefBrowser> browser) {
-		CEF_REQUIRE_UI_THREAD();
-
-		// Remove from the list of existing browsers.
-		BrowserList::iterator bit = browser_list_.begin();
-		for (; bit != browser_list_.end(); ++bit) {
-			if ((*bit)->IsSame(browser)) {
-				browser_list_.erase(bit);
-				break;
-			}
-		}
-
-		if (browser_list_.empty()) {
-			// All browser windows have closed. Quit the application message loop.
-			CefQuitMessageLoop();
-		}
-	}
-
-	void OnLoadError(CefRefPtr<CefBrowser> browser,
-		CefRefPtr<CefFrame> frame,
-		ErrorCode errorCode,
-		const CefString& errorText,
-		const CefString& failedUrl) {
-		CEF_REQUIRE_UI_THREAD();
-
-		// Don't display an error for downloaded files.
-		if (errorCode == ERR_ABORTED)
-			return;
-
-		// Display a load error message.
-		std::stringstream ss;
-		ss << "<html><body bgcolor=\"white\">"
-			"<h2>Failed to load URL "
-			<< std::string(failedUrl) << " with error " << std::string(errorText)
-			<< " (" << errorCode << ").</h2></body></html>";
-		frame->LoadString(ss.str(), failedUrl);
-	}
-
-	void CloseAllBrowsers(bool force_close) {
-		if (!CefCurrentlyOn(TID_UI)) {
-			// Execute on the UI thread.
-			CefPostTask(TID_UI, base::Bind(&SimpleHandler::CloseAllBrowsers, this,
-				force_close));
-			return;
-		}
-
-		if (browser_list_.empty())
-			return;
-
-		BrowserList::const_iterator it = browser_list_.begin();
-		for (; it != browser_list_.end(); ++it)
-			(*it)->GetHost()->CloseBrowser(force_close);
-	}
-
-	bool IsClosing() const { return is_closing_; }
-
-private:
-	// Platform-specific implementation.
-	void PlatformTitleChange(CefRefPtr<CefBrowser> browser,
-		const CefString& title) {
-		CefWindowHandle hwnd = browser->GetHost()->GetWindowHandle();
-		SetWindowText(hwnd, std::wstring(title).c_str());
-	}
-
-
-	// True if the application is using the Views framework.
-	const bool use_views_;
-
-	// List of existing browser windows. Only accessed on the CEF UI thread.
-	typedef std::list<CefRefPtr<CefBrowser>> BrowserList;
-	BrowserList browser_list_;
-
-	bool is_closing_;
-
-	// Include the default reference counting implementation.
-	IMPLEMENT_REFCOUNTING(SimpleHandler);
-};
-
-class SimpleApp : public CefApp, public CefBrowserProcessHandler {
-public:
-	SimpleApp() {};
-
-	// CefApp methods:
-	virtual CefRefPtr<CefBrowserProcessHandler> GetBrowserProcessHandler() {
-		return this;
-	}
-
-	// CefBrowserProcessHandler methods:
-	virtual void OnContextInitialized() {
-		CEF_REQUIRE_UI_THREAD();
-
-		CefRefPtr<CefCommandLine> command_line =
-			CefCommandLine::GetGlobalCommandLine();
-
-		const bool use_views = command_line->HasSwitch("use-views");
-
-		// SimpleHandler implements browser-level callbacks.
-		CefRefPtr<SimpleHandler> handler(new SimpleHandler(use_views));
-
-		// Specify CEF browser settings here.
-		CefBrowserSettings browser_settings;
-
-		std::string url;
-
-		// Check if a "--url=" value was provided via the command-line. If so, use
-		// that instead of the default URL.
-		url = command_line->GetSwitchValue("url");
-		if (url.empty())
-			url = "http://www.google.com";
-
-		if (use_views) {
-			// Create the BrowserView.
-			CefRefPtr<CefBrowserView> browser_view = CefBrowserView::CreateBrowserView(
-				handler, url, browser_settings, NULL, NULL, NULL);
-
-			// Create the Window. It will show itself after creation.
-			CefWindow::CreateTopLevelWindow(new SimpleWindowDelegate(browser_view));
-		}
-		else {
-			// Information used when creating the native window.
-			CefWindowInfo window_info;
-
-			// On Windows we need to specify certain flags that will be passed to
-			// CreateWindowEx().
-			window_info.SetAsPopup(NULL, "cefsimple");
-
-			// Create the first browser window.
-			CefBrowserHost::CreateBrowser(window_info, handler, url, browser_settings,
-				NULL, NULL);
-
-			/*CefRefPtr<CefBrowser> browser = GetCurrentContext()->GetBrowser();
-			browser->GetMainFrame()->LoadStringW("<p>This is a paragraph.</p>", "");*/
-		}
-
-		//handler->GetBrowser()->GetMainFrame()->LoadStringW("<p>This is a paragraph.</p>", "");
-	}
-
-private:
-	// Include the default reference counting implementation.
-	IMPLEMENT_REFCOUNTING(SimpleApp);
-};
-
-void CefCheck()
+RenderHandler::RenderHandler(GLuint texture) : w(0), h(0), texture(texture)
 {
-	CefMainArgs main_args;
-	// CEF applications have multiple sub-processes (render, plugin, GPU, etc)
-	// that share the same executable. This function checks the command-line and,
-	// if this is a sub-process, executes the appropriate logic.
-	int exit_code = CefExecuteProcess(main_args, NULL, NULL);
-	if (exit_code >= 0) {
-		return;
-	}
+	initialized = false;
+	vao = 0; vbo = 0;
+	program = 0; positionLoc = 0;
+}
+
+void RenderHandler::init(void)
+{
+	//GLuint vertexShader = compileShader(GL_VERTEX_SHADER, "shaders/gui.vert");
+	//GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, "shaders/gui.frag");
+
+	//program = glCreateProgram();
+
+	//glAttachShader(program, vertexShader);
+	//glAttachShader(program, fragmentShader);
+	//glLinkProgram(program);
+	//glDetachShader(program, vertexShader);
+	//glDetachShader(program, fragmentShader);
+
+	//positionLoc = glGetAttribLocation(program, "position");
+
+	//float coords[] = { -1.0,-1.0,-1.0,1.0,1.0,-1.0,1.0,-1.0,-1.0,1.0,1.0,1.0 };
+
+	//glGenVertexArrays(1, &vao);
+	//glBindVertexArray(vao);
+	//glGenBuffers(1, &vbo);
+	//glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	//glBufferData(GL_ARRAY_BUFFER, sizeof(coords), coords, GL_STATIC_DRAW);
+	//glEnableVertexAttribArray(positionLoc);
+	//glVertexAttribPointer(positionLoc, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	//glBindBuffer(GL_ARRAY_BUFFER, 0);
+	//glBindVertexArray(0);
+
+	initialized = true;
+}
+
+void RenderHandler::draw(void)
+{
+	//glUseProgram(program);
+	//glBindVertexArray(vao);
+
+	//glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	//glDrawArrays(GL_TRIANGLES, 0, 6);
+	//glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	//glBindVertexArray(0);
+	//glUseProgram(0);
+}
+
+void RenderHandler::reshape(int w, int h)
+{
+	this->w = w;
+	this->h = h;
+}
+
+void RenderHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect)
+{
+	rect = CefRect(0, 0, w, h);
+}
+
+void RenderHandler::OnPaint(CefRefPtr<CefBrowser> browser,
+	PaintElementType type,
+	const RectList& dirtyRects,
+	const void* buffer,
+	int width,
+	int height)
+{
+	glBindTexture(GL_TEXTURE_2D, texture);
+	//glEnable(GL_TEXTURE_2D);
+	//sf::Texture::bind(&texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, (unsigned char*)buffer);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+//GLuint RenderHandler::compileShader(GLenum shaderType, const char* path)
+//{
+//	GLuint shader = glCreateShader(shaderType);
+//
+//	std::ifstream ifs(path);
+//	std::string shaderStr((std::istreambuf_iterator<char>(ifs)),
+//		(std::istreambuf_iterator<char>()));
+//
+//	const char* shaderData = shaderStr.c_str();
+//
+//	glShaderSource(shader, 1, &shaderData, NULL);
+//	glCompileShader(shader);
+//
+//	GLint status;
+//	glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
+//	if (status == GL_FALSE)
+//		printf("SHADER COMPILE ERROR\n");
+//
+//	return shader;
+//}
+
+BrowserClient::BrowserClient(RenderHandler* renderHandler)
+{
+	handler = renderHandler;
+}
+
+CefRefPtr<CefRenderHandler> BrowserClient::GetRenderHandler() {
+	return handler;
+};
+
+Cefgui* initCefgui(GLuint texture)
+{
+	CefMainArgs args;
+	CefExecuteProcess(args, nullptr, NULL);
 
 	CefSettings settings;
 
-	CefRefPtr<SimpleApp> app(new SimpleApp);
+	//// TODO make cross platform
+	//CefString(&settings.locales_dir_path) = "cef/linux/lib/locales";
+	CefString(&settings.locales_dir_path) =
+		"C:\\Development\\cef_binary_76.1.9 + g2cf916e + chromium - 76.0.3809.87_windows64\\Resources\\locales";
 
-	// Initialize CEF.
-	CefInitialize(main_args, settings, app.get(), NULL);
+	CefInitialize(args, settings, nullptr, NULL);
 
-	// Run the CEF message loop. This will block until CefQuitMessageLoop() is
-	// called.
-	CefRunMessageLoop();
+	return new Cefgui(texture);
+}
 
-	// Shut down CEF.
-	CefShutdown();
+Cefgui::Cefgui(GLuint texture) : mouseX(0), mouseY(0)
+{
+	CefWindowInfo windowInfo;
+	CefBrowserSettings settings;
 
-	//CefBrowserSettings browser_settings;
-	//CefWindowInfo window_info;
-	//window_info.SetAsPopup(NULL, "cefsimple");
-	//auto url = "http://www.google.com";
-	////CefBrowserHost::CreateBrowser(window_info, NULL, url, browser_settings, NULL, NULL);
-	//CefRefPtr<CefBrowser> browser = CefBrowserHost::CreateBrowserSync(window_info, NULL, url, browser_settings, NULL, NULL);
-	//auto handle = browser->GetHost();//->GetWindowHandle();
-	////SetWindowPos(handle, NULL, 100, 100, 500, 500, SWP_NOZORDER);
+	//windowInfo.SetAsOffScreen(nullptr);
+	//windowInfo.SetTransparentPainting(true);
+	windowInfo.SetAsWindowless(0);
+
+	renderHandler = new RenderHandler(texture);
+
+	client = new BrowserClient(renderHandler);
+	browser = CefBrowserHost::CreateBrowserSync(windowInfo, client.get(), "google.ru", settings, nullptr, nullptr);
+}
+
+void Cefgui::load(const char* url)
+{
+	if (!renderHandler->initialized)
+		renderHandler->init();
+
+	browser->GetMainFrame()->LoadURL(url);
+}
+
+void Cefgui::draw(void)
+{
+	CefDoMessageLoopWork();
+	renderHandler->draw();
+}
+
+void Cefgui::reshape(int w, int h)
+{
+	renderHandler->reshape(w, h);
+	browser->GetHost()->WasResized();
+}
+
+void Cefgui::mouseMove(int x, int y)
+{
+	mouseX = x;
+	mouseY = y;
+
+	CefMouseEvent event;
+	event.x = x;
+	event.y = y;
+
+	browser->GetHost()->SendMouseMoveEvent(event, false);
+}
+
+void Cefgui::mouseClick(int btn, int state)
+{
+	CefMouseEvent event;
+	event.x = mouseX;
+	event.y = mouseY;
+
+	bool mouseUp = state == 0;
+	CefBrowserHost::MouseButtonType btnType = MBT_LEFT;
+	browser->GetHost()->SendMouseClickEvent(event, btnType, mouseUp, 1);
+}
+
+void Cefgui::keyPress(int key)
+{
+	CefKeyEvent event;
+	event.native_key_code = key;
+	event.type = KEYEVENT_KEYDOWN;
+
+	browser->GetHost()->SendKeyEvent(event);
+}
+
+//void Cefgui::executeJS(const char* command)
+//{
+//	CefRefPtr<CefFrame> frame = browser->GetMainFrame();
+//	frame->ExecuteJavaScript(command, frame->GetURL(), 0);
+//
+//	// TODO limit frequency of texture updating
+//	CefRect rect;
+//	renderHandler->GetViewRect(browser, rect);
+//	//browser->GetHost()->Invalidate(rect, PET_VIEW);
+//}
+
+void Cefgui::output(const char* command)
+{
+	CefRefPtr<CefFrame> frame = browser->GetMainFrame();
+	frame->LoadURL("data:text/plain;charset=UTF-8;page=21,my%20SpaceStationMessage:1234,5678");
+
+	// TODO limit frequency of texture updating
+	CefRect rect;
+	renderHandler->GetViewRect(browser, rect);
+	//browser->GetHost()->Invalidate(rect, PET_VIEW);
+}
+
+Cefgui *CefCheck(GLuint texture)
+{
+	Cefgui* cefgui;
+	cefgui = initCefgui(texture);
+
+	// set window size & url
+	cefgui->reshape(500, 500);
+	cefgui->load("http://www.google.com");
+	//cefgui->output(nullptr);
+	return cefgui;
 }

@@ -1,6 +1,6 @@
 #include "FormattedTextField.hpp"
 
-#include "Client.hpp"
+#include "CefExample.h"
 
 using namespace std;
 
@@ -15,6 +15,8 @@ FormattedTextField::FormattedTextField(const sf::Vector2f &size)
     resized = false;
 
     canBeActive = true;
+
+	cefgui = CefCheck(buffer.getTexture().getNativeHandle());
 }
 
 void FormattedTextField::scrollUp() {
@@ -103,6 +105,10 @@ void FormattedTextField::parse(Inscription &inscription, sf::Text &tempText) {
 
 void FormattedTextField::draw() const {
     buffer.clear(style.backgroundColor);
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	cefgui->draw();
 
     int cur_scroll = scrolled;
 

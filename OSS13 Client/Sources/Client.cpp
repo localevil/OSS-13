@@ -6,8 +6,6 @@
 #include "Network.hpp"
 #include "Shared/Global.hpp"
 
-#include "CefExample.h"
-
 #include <iostream>
 
 ClientController::ClientController() : 
@@ -43,8 +41,6 @@ UI *ClientController::GetUI() { return window->GetUI(); }
 ClientController * const ClientController::Get() { return instance; }
 
 int main() {
-	CefCheck();
-
     ClientController clientController;
     clientController.Run();
 

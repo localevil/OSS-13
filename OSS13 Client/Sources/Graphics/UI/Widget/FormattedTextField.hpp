@@ -8,6 +8,8 @@
 
 #include "CustomWidget.h"
 
+class Cefgui;
+
 class FormattedTextField : public CustomWidget {
 public:
 	FormattedTextField(const sf::Vector2f &size = sf::Vector2f());
@@ -40,6 +42,8 @@ private:
 	// TODO: what is it? mutable is needed here?
 	mutable std::vector<Inscription> text;
 	mutable std::mutex mtx;
+
+	Cefgui *cefgui;
 
 	void scrollUp();
 	void scrollDown();
